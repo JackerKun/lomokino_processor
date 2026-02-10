@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python test_detection.py:*)",
+      "Bash(pkill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(./run_gui.sh)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
