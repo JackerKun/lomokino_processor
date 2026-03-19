@@ -28,6 +28,10 @@ jobs:
         run: |
           pyinstaller lomokino_gui.spec
 
+      - name: Sign macOS app (ad-hoc)
+        run: |
+          codesign --force --deep --sign - dist/LomoKinoGUI.app
+
       - name: Zip macOS app
         run: |
           cd dist
