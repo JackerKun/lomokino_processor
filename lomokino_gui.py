@@ -1014,7 +1014,8 @@ class LomoKinoGUI(QMainWindow):
         self.film_paths = []
         self.current_film_index = -1
         self.current_frames = []
-        self.processor = LomoKinoProcessor()
+        output_dir = str(Path.home() / "Movies" / "LomoKino")
+        self.processor = LomoKinoProcessor(output_dir=output_dir)
         self.params = {
             'fps': 12,
             'frame_height': None
