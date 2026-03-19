@@ -49,6 +49,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='LomoKinoGUI.app',
-    icon=None,
+    icon='LomoKinoGUI.icns',
     bundle_identifier='com.lomokino.gui',
 )
