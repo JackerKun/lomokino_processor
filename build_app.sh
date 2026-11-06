@@ -1,40 +1,14 @@
-#!/bin/bash
-# Build script for creating standalone application
-
-echo "🔨 开始构建 LomoKino GUI 应用..."
-
-# Check if venv exists
-if [ ! -d "venv" ]; then
-    echo "⚠️  虚拟环境不存在，请先运行: ./install_gui.sh"
-    exit 1
-fi
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Install PyInstaller if not present
-echo "📦 安装 PyInstaller..."
-pip install pyinstaller
-
-# Clean previous builds
-echo "🧹 清理旧的构建文件..."
-rm -rf build dist
-
-# Build application
-echo "🏗️  构建应用程序..."
-pyinstaller lomokino_gui.spec
-
-# Check if build was successful
-if [ -d "dist/LomoKinoGUI.app" ]; then
-    echo ""
-    echo "✅ 构建成功!"
-    echo "📱 应用位置: dist/LomoKinoGUI.app"
-    echo ""
-    echo "你可以:"
-    echo "  1. 打开应用: open dist/LomoKinoGUI.app"
-    echo "  2. 复制到应用程序文件夹: cp -r dist/LomoKinoGUI.app /Applications/"
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+PYTHON="${PYTHON:-venv/bin/python}"
+if [[ ! -x "$PYTHON" ]]; then echo '先运行 ./install_gui.sh 创建虚拟环境' >&2; exit 1; fi
+"$PYTHON" -m pip install -r requirements_gui.txt 'pyinstaller>=6.10,<7'
+QT_QPA_PLATFORM=offscreen "$PYTHON" -m unittest discover -s tests -v
+"$PYTHON" -m PyInstaller --noconfirm lomokino_gui.spec
+if [[ "$(uname -s)" == Darwin ]]; then
+  codesign --force --deep --sign - dist/LomoKinoGUI.app
+  echo '应用已生成：dist/LomoKinoGUI.app（本机架构，临时签名）'
 else
-    echo ""
-    echo "❌ 构建失败"
-    exit 1
+  echo '程序已生成：dist/LomoKinoGUI/'
 fi

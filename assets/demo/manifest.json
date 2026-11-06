@@ -1,0 +1,61 @@
+{
+  "synthetic": true,
+  "origin": "AI-generated person-free photographic scan",
+  "people": false,
+  "total_frames": 8,
+  "sources": [
+    {
+      "file": "synthetic_long_scan.png",
+      "detected_rects": [
+        {
+          "x": 0,
+          "y": 12,
+          "width": 713,
+          "height": 279
+        },
+        {
+          "x": 0,
+          "y": 315,
+          "width": 713,
+          "height": 282
+        },
+        {
+          "x": 0,
+          "y": 619,
+          "width": 713,
+          "height": 274
+        },
+        {
+          "x": 0,
+          "y": 918,
+          "width": 713,
+          "height": 264
+        },
+        {
+          "x": 0,
+          "y": 1202,
+          "width": 713,
+          "height": 249
+        },
+        {
+          "x": 0,
+          "y": 1470,
+          "width": 713,
+          "height": 236
+        },
+        {
+          "x": 0,
+          "y": 1727,
+          "width": 713,
+          "height": 229
+        },
+        {
+          "x": 0,
+          "y": 1978,
+          "width": 713,
+          "height": 218
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "method": "Manually reviewed frame counts on available original and synthetic scans; no pixel-boundary ground truth.",
+  "missing_original_fixtures": [
+    "1.jpg",
+    "2.jpg",
+    "3.jpg",
+    "4.jpg",
+    "5.jpg",
+    "6.jpg",
+    "7.jpg",
+    "old.jpg"
+  ],
+  "files": [
+    {
+      "source": "8.jpg",
+      "expected_count": 9,
+      "kind": "original scan",
+      "detected_count": 9,
+      "count_matches": true,
+      "content_x": [
+        0,
+        1080
+      ],
+      "rects": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 352
+        },
+        {
+          "x": 0,
+          "y": 389,
+          "width": 1080,
+          "height": 381
+        },
+        {
+          "x": 0,
+          "y": 809,
+          "width": 1080,
+          "height": 379
+        },
+        {
+          "x": 0,
+          "y": 1220,
+          "width": 1080,
+          "height": 381
+        },
+        {
+          "x": 0,
+          "y": 1640,
+          "width": 1080,
+          "height": 382
+        },
+        {
+          "x": 0,
+          "y": 2049,
+          "width": 1080,
+          "height": 380
+        },
+        {
+          "x": 0,
+          "y": 2465,
+          "width": 1080,
+          "height": 383
+        },
+        {
+          "x": 0,
+          "y": 2885,
+          "width": 1080,
+          "height": 381
+        },
+        {
+          "x": 0,
+          "y": 3303,
+          "width": 1080,
+          "height": 345
+        }
+      ]
+    },
+    {
+      "source": "synthetic_long_scan.png",
+      "expected_count": 8,
+      "kind": "AI-generated synthetic scan",
+      "detected_count": 8,
+      "count_matches": true,
+      "content_x": [
+        0,
+        713
+      ],
+      "rects": [
+        {
+          "x": 0,
+          "y": 12,
+          "width": 713,
+          "height": 279
+        },
+        {
+          "x": 0,
+          "y": 315,
+          "width": 713,
+          "height": 282
+        },
+        {
+          "x": 0,
+          "y": 619,
+          "width": 713,
+          "height": 274
+        },
+        {
+          "x": 0,
+          "y": 918,
+          "width": 713,
+          "height": 264
+        },
+        {
+          "x": 0,
+          "y": 1202,
+          "width": 713,
+          "height": 249
+        },
+        {
+          "x": 0,
+          "y": 1470,
+          "width": 713,
+          "height": 236
+        },
+        {
+          "x": 0,
+          "y": 1727,
+          "width": 713,
+          "height": 229
+        },
+        {
+          "x": 0,
+          "y": 1978,
+          "width": 713,
+          "height": 218
+        }
+      ]
+    }
+  ],
+  "frames": 17
+}
