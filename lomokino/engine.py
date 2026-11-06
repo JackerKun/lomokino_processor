@@ -222,6 +222,19 @@ def fit_frame(frame, size, mode='fit'):
     return canvas
 
 
+def _ffmpeg_writer(destination, size, fps, codec, log):
+    import imageio_ffmpeg
+    encoding = (['-c:v', 'libx264', '-crf', '18', '-preset', 'medium']
+                if codec == 'h264' else ['-c:v', 'mpeg4', '-q:v', '2', '-vtag', 'mp4v'])
+    return subprocess.Popen([
+        imageio_ffmpeg.get_ffmpeg_exe(), '-hide_banner', '-loglevel', 'error', '-y',
+        '-f', 'rawvideo', '-vcodec', 'rawvideo', '-pix_fmt', 'bgr24',
+        '-s', f'{size[0]}x{size[1]}', '-r', str(fps), '-i', '-', '-an',
+        *encoding, '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(destination)],
+        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=log,
+        creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+
+
 def export_video(documents, order, destination, options=None, progress=None, cancelled=None):
     options = options or {}
     fps = float(options.get('fps', 12))
@@ -242,17 +255,15 @@ def export_video(documents, order, destination, options=None, progress=None, can
     log = tempfile.TemporaryFile()
     try:
         if backend == 'h264':
-            import imageio_ffmpeg
-            executable = imageio_ffmpeg.get_ffmpeg_exe()
-            process = subprocess.Popen([executable, '-hide_banner', '-loglevel', 'error', '-y', '-f', 'rawvideo',
-                '-vcodec', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{size[0]}x{size[1]}', '-r', str(fps),
-                '-i', '-', '-an', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium',
-                '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(temp)], stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL, stderr=log,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+            process = _ffmpeg_writer(temp, size, fps, backend, log)
         elif backend == 'mp4v':
             writer = cv2.VideoWriter(str(temp), cv2.VideoWriter_fourcc(*'mp4v'), fps, size)
-            if not writer.isOpened(): raise RuntimeError('OpenCV MPEG-4 编码器无法启动')
+            if not writer.isOpened():
+                # Some OpenCV wheels lack an MPEG-4 encoder (notably Intel macOS).
+                # The bundled FFmpeg supports the same codec without system installs.
+                writer.release()
+                writer = None
+                process = _ffmpeg_writer(temp, size, fps, backend, log)
         else: raise ValueError('不支持的编码器')
         for index, (document, region) in enumerate(selected):
             if cancelled and cancelled(): raise InterruptedError('视频导出已取消，未覆盖目标文件')

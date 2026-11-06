@@ -5,6 +5,7 @@ import tempfile
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch, Mock
 from dataclasses import replace
 from pathlib import Path
 import cv2
@@ -139,7 +140,7 @@ class ProjectExportTests(unittest.TestCase):
         order = list(reversed(self.order))
         destination = self.folder / 'frames'
         self.assertEqual(export_sequence([self.document], order, destination), 3)
-        records = json.loads((destination / 'frames.json').read_text())['frames']
+        records = json.loads((destination / 'frames.json').read_text(encoding='utf-8'))['frames']
         for record, (document, region) in zip(records, ordered_regions([self.document], order)):
             np.testing.assert_array_equal(read_image(destination / record['file']), region.rect.crop(document.image))
             self.assertEqual(record['region_id'], region.id)
@@ -152,7 +153,7 @@ class ProjectExportTests(unittest.TestCase):
         order = list(reversed(self.order))
         project = self.folder / 'test.lomokino.json'
         save_project(project, [self.document], order, {'fps': 5, 'invert': True})
-        data = json.loads(project.read_text())
+        data = json.loads(project.read_text(encoding='utf-8'))
         self.assertFalse(Path(data['sources'][0]['path']).is_absolute())
         docs, restored, options, warnings = load_project(project)
         self.assertEqual(restored, order)
@@ -174,9 +175,9 @@ class ProjectExportTests(unittest.TestCase):
     def test_project_rejects_duplicate_or_missing_frame_ids(self):
         project = self.folder / 'test.lomokino.json'
         save_project(project, [self.document], self.order, {})
-        value = json.loads(project.read_text())
+        value = json.loads(project.read_text(encoding='utf-8'))
         value['frame_order'].append(value['frame_order'][0])
-        project.write_text(json.dumps(value))
+        project.write_text(json.dumps(value), encoding='utf-8')
         with self.assertRaises(ValueError): load_project(project)
 
     def test_cancelled_sequence_leaves_no_partial_folder(self):
@@ -196,6 +197,24 @@ class ProjectExportTests(unittest.TestCase):
         self.assertEqual(round(capture.get(cv2.CAP_PROP_FRAME_COUNT)), 3)
         self.assertAlmostEqual(capture.get(cv2.CAP_PROP_FPS), 5, delta=.05)
         capture.release()
+
+    def test_mp4v_falls_back_when_opencv_encoder_is_unavailable(self):
+        destination = self.folder / '备用编码.mp4'
+        unavailable = Mock()
+        unavailable.isOpened.return_value = False
+        with patch('lomokino.engine.cv2.VideoWriter', return_value=unavailable):
+            metadata = export_video([self.document], self.order, destination,
+                                    {'fps': 7, 'codec': 'mp4v'})
+        unavailable.release.assert_called_once()
+        self.assertEqual(metadata['codec'], 'mp4v')
+        capture = cv2.VideoCapture(str(destination))
+        try:
+            self.assertTrue(capture.isOpened())
+            self.assertEqual(round(capture.get(cv2.CAP_PROP_FRAME_COUNT)), len(self.order))
+            self.assertAlmostEqual(capture.get(cv2.CAP_PROP_FPS), 7, delta=.05)
+            self.assertTrue(capture.read()[0])
+        finally:
+            capture.release()
 
     def test_late_video_cancel_preserves_previous_destination(self):
         destination = self.folder / 'existing.mp4'
@@ -227,7 +246,7 @@ class ProjectExportTests(unittest.TestCase):
                               '-o', str(destination), '--fps', '7'], capture_output=True, text=True)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual(json.loads(run.stdout)['video']['frames'], 3)
-        records = json.loads((destination / 'frames/frames.json').read_text())['frames']
+        records = json.loads((destination / 'frames/frames.json').read_text(encoding='utf-8'))['frames']
         self.assertEqual([r['region_id'] for r in records], [key for key in order if key != self.order[1]])
         capture = cv2.VideoCapture(str(destination / 'movie.mp4'))
         self.assertAlmostEqual(capture.get(cv2.CAP_PROP_FPS), 7, delta=.05)
