@@ -24,5 +24,5 @@ coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='LomoKinoG
 if sys.platform == 'darwin':
     app = BUNDLE(coll, name='LomoKinoGUI.app', icon='LomoKinoGUI.icns',
         bundle_identifier='com.lomokino.gui', info_plist={
-            'CFBundleDisplayName': 'LomoKino Studio', 'CFBundleShortVersionString': '4.0.1',
-            'CFBundleVersion': '4.0.1', 'NSHighResolutionCapable': True})
+            'CFBundleDisplayName': 'LomoKino Studio', 'CFBundleShortVersionString': '4.0.2',
+            'CFBundleVersion': '4.0.2', 'NSHighResolutionCapable': True})

@@ -30,25 +30,33 @@ QLabel { background: transparent; }
 QGroupBox, QScrollArea > QWidget > QWidget { background: #1b2329; }
 QListWidget::item:selected { color: #edf1f1; }
 QLabel#brand { font-size: 22px; font-weight: 700; color: #f0e3cc; }
-QLabel#eyebrow { color: #8faaa8; font-size: 9px; letter-spacing: 1px; }
-QLabel#muted, QLabel#status { color: #9caaaf; font-size: 12px; }
+QLabel#muted, QLabel#status { color: #a7b5ba; font-size: 12px; }
+QLabel#sectionTitle { color: #edf1f1; font-weight: 600; }
 QLabel#emptyTitle { font-size: 29px; font-weight: 600; color: #eee4d3; }
 QLabel#preview { background: #0f1418; border: 1px solid #344148; border-radius: 6px; }
 QWidget#header { background: #1d262c; border-bottom: 1px solid #344148; }
+QWidget#footer { background: #1d262c; border-top: 1px solid #344148; }
 QWidget#sidebar, QWidget#inspector { background: #1b2329; }
+QWidget#emptyStage, QWidget#emptyActions { background: #172026; }
 QToolBar { border: 0; spacing: 7px; padding: 8px; background: #1b2329; }
 QToolBar::separator { background: #39464d; width: 1px; margin: 5px; }
 QToolButton, QPushButton { background: #29363f; border: 1px solid #40515a; border-radius: 5px; padding: 6px 10px; min-height: 20px; }
-QToolButton:hover, QPushButton:hover { background: #354650; border-color: #78958f; }
+QToolBar QToolButton#qt_toolbar_ext_button { padding: 0; qproperty-text: '»'; qproperty-toolButtonStyle: ToolButtonTextOnly; qproperty-toolTip: '更多画布工具'; }
+QToolButton:hover, QPushButton:hover { background: #354650; border-color: #657c87; }
+QToolButton:pressed, QPushButton:pressed { background: #202c34; }
 QPushButton#primary { background: #dbad68; color: #182126; font-weight: 600; border-color: #e6bd7f; }
+QPushButton#primary:hover { background: #e6bd7f; }
+QPushButton#primary:pressed { background: #c99856; }
 QToolButton:checked, QPushButton:checked { background: #48605e; border-color: #89c9ba; }
-QPushButton:disabled, QToolButton:disabled { color: #6f7e85; background: #212b32; border-color: #303d45; }
+QPushButton:disabled, QToolButton:disabled, QPushButton#primary:disabled { color: #7f9098; background: #212b32; border-color: #303d45; }
+QPushButton:focus, QToolButton:focus, QPushButton#primary:focus { border-color: #e6bd7f; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox { background: #11191e; border: 1px solid #41515b; border-radius: 4px; padding: 5px; min-height: 21px; selection-background-color: #526b65; }
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-color: #89b2ab; }
 QComboBox QAbstractItemView { background: #25323b; selection-background-color: #526b65; }
 QListWidget { background: #172026; border: 0; outline: 0; }
 QListWidget::item { padding: 7px; border: 1px solid transparent; border-radius: 5px; }
 QListWidget::item:selected { background: #344a4c; border: 1px solid #86b6ab; }
-QListWidget::item:hover { background: #26353e; }
+QListWidget::item:hover:!selected { background: #26353e; }
 QGroupBox { font-weight: 600; border: 1px solid #36454d; border-radius: 6px; margin-top: 15px; padding: 12px 9px 8px; }
 QGroupBox::title { subcontrol-origin: margin; left: 9px; padding: 0 4px; color: #d3e5df; }
 QTabWidget::pane { border: 0; }
@@ -263,18 +271,19 @@ class LomoKinoGUI(QMainWindow):
         self.header = QWidget()
         self.header.setObjectName('header')
         header = QHBoxLayout(self.header)
-        header.setContentsMargins(18, 12, 18, 12)
+        header.setContentsMargins(16, 12, 16, 12)
+        header.setSpacing(8)
         brand = QVBoxLayout()
-        brand.setSpacing(2)
-        brand.addWidget(label('SCAN  /  REVIEW  /  MOTION'))
-        brand.itemAt(0).widget().setObjectName('eyebrow')
+        brand.setSpacing(4)
         name = label('LomoKino Studio')
         name.setObjectName('brand')
+        name.setWordWrap(False)
         brand.addWidget(name)
+        workflow = label('扫描  /  校对  /  导出', True)
+        workflow.setWordWrap(False)
+        brand.addWidget(workflow)
         header.addLayout(brand)
         header.addStretch()
-        header.addWidget(label('扫描长条 → 自动裁切 → 视频', True))
-        header.addSpacing(15)
         header.addWidget(button('打开项目', self.open_project))
         header.addWidget(button('保存项目', self.save))
         header.addWidget(button('＋ 导入扫描条', self.import_files, True))
@@ -287,6 +296,7 @@ class LomoKinoGUI(QMainWindow):
         self.body.setSizes([230, 1000, 310])
         root.addWidget(self.body, 1)
         footer = QWidget()
+        footer.setObjectName('footer')
         row = QHBoxLayout(footer)
         row.setContentsMargins(14, 7, 14, 7)
         self.status = label('就绪 · 原片只读，裁切与顺序保存在项目文件中', True)
@@ -314,8 +324,11 @@ class LomoKinoGUI(QMainWindow):
         self.sidebar.setMinimumWidth(180)
         self.sidebar.setMaximumWidth(340)
         layout = QVBoxLayout(self.sidebar)
-        layout.setContentsMargins(12, 14, 12, 12)
-        layout.addWidget(label('扫描素材'))
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+        title = label('扫描素材')
+        title.setObjectName('sectionTitle')
+        layout.addWidget(title)
         layout.addWidget(label('支持多张拖入 · 按文件名自然排序', True))
         self.film_list = QListWidget()
         self.film_list.setIconSize(QSize(44, 66))
@@ -324,6 +337,7 @@ class LomoKinoGUI(QMainWindow):
         layout.addWidget(self.film_list, 1)
         layout.addWidget(button('识别全部扫描条', lambda: self.analyze(True)))
         row = QHBoxLayout()
+        row.setSpacing(8)
         row.addWidget(button('添加', self.import_files))
         row.addWidget(button('移除', self.remove_document))
         layout.addLayout(row)
@@ -354,23 +368,28 @@ class LomoKinoGUI(QMainWindow):
         self.center_split = QSplitter(Qt.Orientation.Vertical)
         self.stage = QStackedWidget()
         self.empty = QWidget()
+        self.empty.setObjectName('emptyStage')
         empty = QVBoxLayout(self.empty)
-        empty.setContentsMargins(50, 50, 50, 50)
+        empty.setContentsMargins(24, 24, 24, 24)
+        empty.setSpacing(8)
         empty.addStretch()
-        title = label('扫描成长条，自动切成电影')
+        title = label('从胶片扫描条开始')
         title.setObjectName('emptyTitle')
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty.addWidget(title)
-        subtitle = label('扫描仪先扫成长条，软件自动分帧，确认后转换成视频。', True)
+        subtitle = label('导入扫描条后自动分帧，校对裁切和顺序后即可导出。', True)
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty.addWidget(subtitle)
-        empty.addSpacing(20)
-        empty.addWidget(button('＋ 选择扫描图片', self.import_files, True), alignment=Qt.AlignmentFlag.AlignCenter)
-        empty.addWidget(button('用无人物示例试一遍', self.load_demo), alignment=Qt.AlignmentFlag.AlignCenter)
-        empty.addSpacing(20)
-        hint = label('01  导入与识别      02  原图像素校对      03  按确认序列导出', True)
-        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty.addWidget(hint)
+        empty.addSpacing(12)
+        actions = QWidget()
+        actions.setObjectName('emptyActions')
+        actions.setFixedWidth(288)
+        action_row = QHBoxLayout(actions)
+        action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.setSpacing(8)
+        action_row.addWidget(button('＋ 导入扫描条', self.import_files, True), 1)
+        action_row.addWidget(button('载入无人物示例', self.load_demo), 1)
+        empty.addWidget(actions, alignment=Qt.AlignmentFlag.AlignHCenter)
         empty.addStretch()
         self.stage.addWidget(self.empty)
         self.canvas = FilmCanvas()
@@ -388,6 +407,7 @@ class LomoKinoGUI(QMainWindow):
         bottom_layout.setContentsMargins(10, 8, 10, 3)
         row = QHBoxLayout()
         self.sequence_summary = label('确认帧序列 · 0 帧')
+        self.sequence_summary.setObjectName('sectionTitle')
         row.addWidget(self.sequence_summary, 1)
         self.play_button = button('▶ 预演', self.toggle_playback)
         row.addWidget(self.play_button)
@@ -603,7 +623,8 @@ class LomoKinoGUI(QMainWindow):
         count = len(ordered_regions(self.documents, self.order))
         total = len(self.order)
         seconds = count / self.fps.value()
-        self.sequence_summary.setText(f'确认帧序列 · {count}/{total} 帧参与导出 · {seconds:.2f} 秒')
+        self.sequence_summary.setText(f'确认帧序列 · {count}/{total} 帧 · {seconds:.2f} 秒')
+        self.sequence_summary.setToolTip(f'{count} 帧参与导出，共 {total} 帧')
         self.source_summary.setText(f'{len(self.documents)} 张扫描条 · {total} 个裁切框\n原片只读，编辑可撤销')
         self.export_summary.setText(f'{count} 帧 · {self.fps.value():g} FPS · {seconds:.2f} 秒\n导出使用当前确认序列，不重新检测。')
         self.play_button.setEnabled(count > 0)
