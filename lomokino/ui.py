@@ -8,7 +8,7 @@ import sys
 import threading
 import traceback
 import cv2
-from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer, QRectF
+from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer, QRectF, QLocale
 from PyQt6.QtGui import QAction, QKeySequence, QUndoStack, QUndoCommand, QColor, QPainter, QPen, QIcon, QTransform, QPalette
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QToolButton, QMenu, QToolBar, QSplitter, QScrollArea, QStackedWidget,
@@ -105,6 +105,7 @@ def scroll_page():
 
 def number(low=0, high=100000, value=0):
     widget = QSpinBox()
+    widget.setLocale(QLocale.c())
     widget.setRange(low, high)
     widget.setValue(value)
     widget.setKeyboardTracking(False)
@@ -498,6 +499,7 @@ class LomoKinoGUI(QMainWindow):
         self.deskew = QCheckBox('尝试自动校正倾斜')
         form.addRow(self.deskew)
         self.angle = QDoubleSpinBox()
+        self.angle.setLocale(QLocale.c())
         self.angle.setRange(-6, 6)
         self.angle.setDecimals(2)
         self.angle.setSingleStep(.1)
@@ -519,6 +521,7 @@ class LomoKinoGUI(QMainWindow):
         video = QGroupBox('视频设置')
         form = QFormLayout(video)
         self.fps = QDoubleSpinBox()
+        self.fps.setLocale(QLocale.c())
         self.fps.setRange(1, 60)
         self.fps.setValue(12)
         self.fps.setSingleStep(1)

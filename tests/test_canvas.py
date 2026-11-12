@@ -4,14 +4,51 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 import unittest
 from pathlib import Path
 import numpy as np
-from PyQt6.QtWidgets import QApplication, QGraphicsPixmapItem
-from PyQt6.QtCore import QPointF, Qt
+from PyQt6.QtWidgets import QApplication, QAbstractSpinBox, QGraphicsPixmapItem
+from PyQt6.QtCore import QLocale, QPointF, Qt
 from PyQt6.QtTest import QTest
 from lomokino.models import CropRect, FrameRegion, FilmDocument
 from lomokino.canvas import FilmCanvas
 from lomokino.ui import LomoKinoGUI
 
 APP = QApplication.instance() or QApplication([])
+
+class NumericLocaleTests(unittest.TestCase):
+    def test_project_parameters_use_ascii_digits_and_decimal_point(self):
+        previous = QLocale()
+        self.addCleanup(QLocale.setDefault, previous)
+        for name in ('zh_Hans_HK', 'zh_Hans_MO', 'ar_EG', 'de_DE'):
+            with self.subTest(locale=name):
+                QLocale.setDefault(QLocale(name))
+                window = LomoKinoGUI()
+                try:
+                    controls = window.findChildren(QAbstractSpinBox)
+                    self.assertIn(window.angle, controls)
+                    self.assertIn(window.fps, controls)
+                    for control in controls:
+                        self.assertEqual(control.locale().zeroDigit(), '0')
+                        self.assertEqual(control.locale().decimalPoint(), '.')
+                        self.assertEqual(control.locale().name(), 'C')
+
+                    window.inset.setValue(3)
+                    self.assertEqual(window.inset.text(), '3 px')
+                    window.inset.stepUp()
+                    self.assertEqual(window.inset.text(), '4 px')
+
+                    window.angle.lineEdit().setText('-1.25 °')
+                    window.angle.interpretText()
+                    self.assertAlmostEqual(window.angle.value(), -1.25)
+                    window.angle.stepUp()
+                    self.assertEqual(window.angle.text(), '-1.15 °')
+
+                    window.fps.lineEdit().setText('23.98 FPS')
+                    window.fps.interpretText()
+                    self.assertAlmostEqual(window.fps.value(), 23.98)
+                    self.assertEqual(window.fps.text(), '23.98 FPS')
+                finally:
+                    window.setWindowModified(False)
+                    window.close()
+
 
 class CanvasTests(unittest.TestCase):
     def setUp(self):
