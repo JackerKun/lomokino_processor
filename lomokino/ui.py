@@ -8,8 +8,8 @@ import sys
 import threading
 import traceback
 import cv2
-from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer, QRectF, QLocale
-from PyQt6.QtGui import QAction, QKeySequence, QUndoStack, QUndoCommand, QColor, QPainter, QPen, QIcon, QTransform, QPalette
+from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer, QRectF, QLocale, QUrl
+from PyQt6.QtGui import QAction, QKeySequence, QUndoStack, QUndoCommand, QColor, QPainter, QPen, QIcon, QTransform, QPalette, QDesktopServices
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QToolButton, QMenu, QToolBar, QSplitter, QScrollArea, QStackedWidget,
     QListWidget, QListWidgetItem, QAbstractItemView, QTabWidget, QFormLayout, QGroupBox,
@@ -20,6 +20,7 @@ from .models import CropRect, FrameRegion, DetectionSettings
 from .engine import (load_document, save_project, load_project, ordered_regions, frame_lookup,
     frame_image, export_sequence, export_video, MissingSources, IMAGE_SUFFIXES, natural_key, to8)
 from .canvas import FilmCanvas, pixmap
+from .updates import PROJECT_URL, check_latest_release, is_newer_release
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 IMAGE_FILTER = '扫描图片 (*.jpg *.jpeg *.png *.tif *.tiff *.bmp)'
@@ -36,6 +37,7 @@ QLabel#emptyTitle { font-size: 29px; font-weight: 600; color: #eee4d3; }
 QLabel#preview { background: #0f1418; border: 1px solid #344148; border-radius: 6px; }
 QWidget#header { background: #1d262c; border-bottom: 1px solid #344148; }
 QWidget#footer { background: #1d262c; border-top: 1px solid #344148; }
+QWidget#updateNotice { background: transparent; }
 QWidget#sidebar, QWidget#inspector { background: #1b2329; }
 QWidget#emptyStage, QWidget#emptyActions { background: #172026; }
 QToolBar { border: 0; spacing: 7px; padding: 8px; background: #1b2329; }
@@ -265,6 +267,10 @@ class LomoKinoGUI(QMainWindow):
         edit_menu.addAction(self.action('反转全部帧顺序', self.reverse_order))
         help_menu = self.menuBar().addMenu('帮助')
         help_menu.addAction(self.action('操作指南', self.show_help))
+        help_menu.addSeparator()
+        self.check_update_action = self.action('检查更新', lambda: self.check_updates(manual=True))
+        help_menu.addAction(self.check_update_action)
+        help_menu.addAction(self.action('在 GitHub 查看项目', lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL))))
         main = QWidget()
         root = QVBoxLayout(main)
         root.setContentsMargins(0, 0, 0, 0)
@@ -303,6 +309,20 @@ class LomoKinoGUI(QMainWindow):
         self.status = label('就绪 · 原片只读，裁切与顺序保存在项目文件中', True)
         self.status.setObjectName('status')
         row.addWidget(self.status, 1)
+        self.update_notice = QWidget()
+        self.update_notice.setObjectName('updateNotice')
+        update_row = QHBoxLayout(self.update_notice)
+        update_row.setContentsMargins(0, 0, 0, 0)
+        self.update_message = label()
+        update_row.addWidget(self.update_message)
+        self.update_page = None
+        self.update_download = button('去下载', self.open_update_page)
+        update_row.addWidget(self.update_download)
+        dismiss = button('关闭', self.update_notice.hide)
+        dismiss.setAccessibleName('关闭更新提示')
+        update_row.addWidget(dismiss)
+        self.update_notice.hide()
+        row.addWidget(self.update_notice)
         self.progress = QProgressBar()
         self.progress.setFixedWidth(180)
         self.progress.setTextVisible(False)
@@ -1109,6 +1129,32 @@ class LomoKinoGUI(QMainWindow):
     def show_help(self):
         QMessageBox.information(self, '使用指南', '1. 导入扫描条，查看自动候选框。\n2. 在原图上拖动框或八个边角；右侧可输入像素坐标。\n3. 橙色帧为待复查，取消包含即可排除。\n4. 拖动下方缩略图排序，导出始终使用该序列。\n5. 保存 .lomokino.json 继续编辑；源图片需另外保留。\n\nCtrl / ⌘ + 滚轮缩放，空格拖动平移；方向键移动 1 px，Shift 10 px。\nCtrl / ⌘ + Z 撤销，Shift + Ctrl / ⌘ + Z 重做。\n自动识别不保证所有曝光和扫描条件下准确，导出前请逐帧校对。')
 
+    def check_updates(self, manual=False):
+        if not self.check_update_action.isEnabled():
+            return
+        self.check_update_action.setEnabled(False)
+        if manual:
+            self.show_update_notice('正在检查更新…')
+        check_latest_release(self, lambda tag: self.update_check_finished(tag, manual))
+
+    def update_check_finished(self, tag, manual):
+        self.check_update_action.setEnabled(True)
+        if is_newer_release(tag, __version__):
+            self.show_update_notice(f'发现新版本 {tag}', QUrl(f'{PROJECT_URL}/releases/tag/{tag}'))
+        elif manual:
+            message = f'当前版本 v{__version__}，暂无更新' if tag else '暂时无法检查更新，请稍后重试'
+            self.show_update_notice(message)
+
+    def show_update_notice(self, message, page=None):
+        self.update_message.setText(message)
+        self.update_page = page
+        self.update_download.setVisible(page is not None)
+        self.update_notice.show()
+
+    def open_update_page(self):
+        if self.update_page is not None:
+            QDesktopServices.openUrl(self.update_page)
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls(): event.acceptProposedAction()
 
@@ -1138,7 +1184,12 @@ def main(argv=None):
     if args.self_test:
         from .smoke import verify_package
         return verify_package(args.self_test)
-    app = QApplication.instance() or QApplication(sys.argv[:1])
+    app = QApplication.instance()
+    if app is None:
+        if sys.platform == 'darwin' and not getattr(sys, 'frozen', False):
+            from .macos import set_source_app_name
+            set_source_app_name('LomoKino Studio')
+        app = QApplication(sys.argv[:1])
     app.setApplicationName('LomoKino Studio')
     app.setApplicationVersion(__version__)
     app.setStyle('Fusion')
@@ -1155,6 +1206,7 @@ def main(argv=None):
     screen = app.primaryScreen().availableGeometry()
     window.resize(min(1560, screen.width() - 40), min(960, screen.height() - 60))
     window.show()
+    QTimer.singleShot(0, window.check_updates)
     if args.project: QTimer.singleShot(0, lambda: window.open_project_path(args.project))
     elif args.demo: QTimer.singleShot(0, window.load_demo)
     elif args.files: QTimer.singleShot(0, lambda: window.import_paths(args.files))

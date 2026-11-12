@@ -15,7 +15,7 @@ for package in ('PyQt6', 'PyQt6-Qt6', 'opencv-python', 'numpy', 'imageio-ffmpeg'
 a = Analysis(['lomokino_gui.py'], pathex=[], binaries=[],
     datas=[('assets/icon.png', 'assets'), ('assets/demo', 'assets/demo')] + collect_data_files('imageio_ffmpeg') + licenses,
     hiddenimports=['imageio_ffmpeg'], hookspath=[], hooksconfig={}, runtime_hooks=[],
-    excludes=[], noarchive=False)
+    excludes=['lomokino.macos'], noarchive=False)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='LomoKinoGUI',
     debug=False, strip=False, upx=False, console=False,
@@ -24,5 +24,6 @@ coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='LomoKinoG
 if sys.platform == 'darwin':
     app = BUNDLE(coll, name='LomoKinoGUI.app', icon='LomoKinoGUI.icns',
         bundle_identifier='com.lomokino.gui', info_plist={
-            'CFBundleDisplayName': 'LomoKino Studio', 'CFBundleShortVersionString': '4.0.3',
-            'CFBundleVersion': '4.0.3', 'NSHighResolutionCapable': True})
+            'CFBundleName': 'LomoKino Studio',
+            'CFBundleDisplayName': 'LomoKino Studio', 'CFBundleShortVersionString': '4.0.4',
+            'CFBundleVersion': '4.0.4', 'NSHighResolutionCapable': True})
