@@ -52,6 +52,8 @@
 
 前往 [Releases](https://github.com/JackerKun/lomokino_processor/releases) 查看已有构建。4.0 的源码与工作流更新不会自动变成已发布安装包，需维护者推送版本标签后构建。
 
+启动时会在后台检查更新，离线时仍可继续编辑和导出。排查启动问题时，可在 Windows 命令提示符进入程序目录，运行 `LomoKinoGUI.exe --no-update-check` 跳过本次自动检查。仍可在「帮助」菜单里手动检查。
+
 - macOS：解压对应 Apple Silicon / Intel 的 ZIP，打开 `LomoKinoGUI.app`。构建仅临时签名，未完成 Apple 公证；首次打开按系统提供的“仍要打开”流程处理。
 - Windows：解压整个 ZIP，保持 `LomoKinoGUI` 文件夹完整，再打开其中的 `LomoKinoGUI.exe`。不能只复制 EXE，`_internal` 里包含 Qt、OpenCV 与 FFmpeg。
 - GUI 目前为简体中文；英文 README 便于了解使用方式，尚未提供英文界面。

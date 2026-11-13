@@ -20,7 +20,8 @@ from .models import CropRect, FrameRegion, DetectionSettings
 from .engine import (load_document, save_project, load_project, ordered_regions, frame_lookup,
     frame_image, export_sequence, export_video, MissingSources, IMAGE_SUFFIXES, natural_key, to8)
 from .canvas import FilmCanvas, pixmap
-from .updates import PROJECT_URL, check_latest_release, is_newer_release
+from .update_process import UpdateCheck
+from .updates import PROJECT_URL, is_newer_release
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 IMAGE_FILTER = '扫描图片 (*.jpg *.jpeg *.png *.tif *.tiff *.bmp)'
@@ -231,6 +232,9 @@ class LomoKinoGUI(QMainWindow):
         self.last_directory = str(Path.home())
         self.job = None
         self._refreshing = False
+        self._manual_update_check = False
+        self._update_check = UpdateCheck(self)
+        self._update_check.finished.connect(self.update_check_finished)
         self.undo_stack = QUndoStack(self)
         self.undo_stack.setUndoLimit(30)
         self.timer = QTimer(self)
@@ -1132,12 +1136,14 @@ class LomoKinoGUI(QMainWindow):
     def check_updates(self, manual=False):
         if not self.check_update_action.isEnabled():
             return
+        self._manual_update_check = manual
         self.check_update_action.setEnabled(False)
         if manual:
             self.show_update_notice('正在检查更新…')
-        check_latest_release(self, lambda tag: self.update_check_finished(tag, manual))
+        self._update_check.start()
 
-    def update_check_finished(self, tag, manual):
+    def update_check_finished(self, tag):
+        manual, self._manual_update_check = self._manual_update_check, False
         self.check_update_action.setEnabled(True)
         if is_newer_release(tag, __version__):
             self.show_update_notice(f'发现新版本 {tag}', QUrl(f'{PROJECT_URL}/releases/tag/{tag}'))
@@ -1170,8 +1176,11 @@ class LomoKinoGUI(QMainWindow):
             self.status.setText('任务正在取消，请等待清理完成后关闭窗口')
             return
         self.timer.stop()
-        if self.needs_save(): event.accept()
-        else: event.ignore()
+        if self.needs_save():
+            self._update_check.stop()
+            event.accept()
+        else:
+            event.ignore()
 
 
 def main(argv=None):
@@ -1180,6 +1189,7 @@ def main(argv=None):
     parser.add_argument('--self-test', metavar='OUTPUT_FOLDER', help='验证打包依赖和 H.264 编码后退出')
     parser.add_argument('--demo', action='store_true', help='载入内置无人物合成扫描条')
     parser.add_argument('--project', help='打开 .lomokino.json 项目')
+    parser.add_argument('--no-update-check', action='store_true', help='本次启动跳过自动检查更新')
     args = parser.parse_args(argv)
     if args.self_test:
         from .smoke import verify_package
@@ -1206,7 +1216,8 @@ def main(argv=None):
     screen = app.primaryScreen().availableGeometry()
     window.resize(min(1560, screen.width() - 40), min(960, screen.height() - 60))
     window.show()
-    QTimer.singleShot(0, window.check_updates)
+    if not args.no_update_check:
+        QTimer.singleShot(0, window.check_updates)
     if args.project: QTimer.singleShot(0, lambda: window.open_project_path(args.project))
     elif args.demo: QTimer.singleShot(0, window.load_demo)
     elif args.files: QTimer.singleShot(0, lambda: window.import_paths(args.files))

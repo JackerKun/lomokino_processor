@@ -1,15 +1,15 @@
-"""Check the public GitHub release without blocking the application."""
+"""Read the public GitHub release in the update worker."""
 
 import json
+from pathlib import Path
 import re
-
-from PyQt6.QtCore import QUrl
-from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 REPOSITORY = 'JackerKun/lomokino_processor'
 PROJECT_URL = f'https://github.com/{REPOSITORY}'
 LATEST_RELEASE_URL = f'https://api.github.com/repos/{REPOSITORY}/releases/latest'
 VERSION_PATTERN = re.compile(r'v?([0-9]+)\.([0-9]+)\.([0-9]+)')
+WORKER_FLAG = '--lomokino-update-worker'
+MAX_RESPONSE_BYTES = 1024 * 1024
 
 
 def version_key(tag):
@@ -40,21 +40,34 @@ def latest_release_tag(data):
     return tag if version_key(tag) is not None else None
 
 
-def check_latest_release(parent, on_result):
-    network = QNetworkAccessManager(parent)
-    request = QNetworkRequest(QUrl(LATEST_RELEASE_URL))
-    request.setRawHeader(b'Accept', b'application/vnd.github+json')
-    request.setRawHeader(b'User-Agent', b'LomoKino-Studio')
-    request.setAttribute(QNetworkRequest.Attribute.RedirectPolicyAttribute,
-                         QNetworkRequest.RedirectPolicy.SameOriginRedirectPolicy)
-    request.setTransferTimeout(5000)
+def fetch_latest_release(destination):
+    """Write a validated tag for the GUI to read after the worker exits."""
+    from http.client import HTTPException
+    import ssl
+    import sys
+    from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
-    def finished(reply):
-        network.deleteLater()
-        if reply.error() != QNetworkReply.NetworkError.NoError:
-            on_result(None)
-        else:
-            on_result(latest_release_tag(bytes(reply.readAll())))
+    class NoRedirect(HTTPRedirectHandler):
+        def redirect_request(self, *args):
+            return None
 
-    network.finished.connect(finished)
-    network.get(request)
+    request = Request(LATEST_RELEASE_URL, headers={
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'LomoKino-Studio',
+    })
+    try:
+        context = ssl.create_default_context()
+        if sys.platform == 'darwin' and context.cert_store_stats()['x509_ca'] == 0:
+            context.load_verify_locations('/etc/ssl/cert.pem')
+        opener = build_opener(NoRedirect(), HTTPSHandler(context=context))
+        with opener.open(request, timeout=5) as response:
+            if response.status != 200:
+                return 1
+            data = response.read(MAX_RESPONSE_BYTES + 1)
+        tag = latest_release_tag(data) if len(data) <= MAX_RESPONSE_BYTES else None
+        if tag is None:
+            return 1
+        Path(destination).write_text(tag, encoding='ascii')
+    except (OSError, HTTPException):
+        return 1
+    return 0

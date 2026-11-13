@@ -3,6 +3,7 @@ import sys
 from importlib.metadata import distribution
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
+from lomokino import __version__
 
 licenses = [('LICENSE', 'licenses/project'), ('docs/THIRD-PARTY.md', 'licenses')]
 for package in ('PyQt6', 'PyQt6-Qt6', 'opencv-python', 'numpy', 'imageio-ffmpeg'):
@@ -25,5 +26,5 @@ if sys.platform == 'darwin':
     app = BUNDLE(coll, name='LomoKinoGUI.app', icon='LomoKinoGUI.icns',
         bundle_identifier='com.lomokino.gui', info_plist={
             'CFBundleName': 'LomoKino Studio',
-            'CFBundleDisplayName': 'LomoKino Studio', 'CFBundleShortVersionString': '4.0.4',
-            'CFBundleVersion': '4.0.4', 'NSHighResolutionCapable': True})
+            'CFBundleDisplayName': 'LomoKino Studio', 'CFBundleShortVersionString': __version__,
+            'CFBundleVersion': __version__, 'NSHighResolutionCapable': True})

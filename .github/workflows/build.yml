@@ -66,12 +66,23 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: LomoKinoStudio-*
           merge-multiple: true
           path: release
+      - name: Find release notes
+        id: notes
+        run: |
+          notes="docs/releases/${GITHUB_REF_NAME}.md"
+          if [[ -s "$notes" ]]; then
+            printf 'path=%s\n' "$notes" >> "$GITHUB_OUTPUT"
+          fi
       - uses: softprops/action-gh-release@v2
         with:
           files: release/*.zip
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.path }}
+          generate_release_notes: ${{ steps.notes.outputs.path == '' }}
